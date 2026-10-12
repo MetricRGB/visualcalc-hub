@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculator</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        quantumDark: '#0B0F19',
+                        quantumCard: 'rgba(17, 24, 39, 0.7)',
+                        quantumBorder: 'rgba(255, 255, 255, 0.1)',
+                        neonCyan: '#00F2FE',
+                        electricViolet: '#4FACFE',
+                        neonPurple: '#a855f7',
+                    },
+                    boxShadow: {
+                        neon: '0 0 20px rgba(0, 242, 254, 0.25)',
+                        'neon-lg': '0 0 35px rgba(79, 172, 254, 0.4)',
+                        glass: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome & Google Fonts (Orbitron & Inter) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@500;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <!-- MathJS CDN for precise math calculations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0B0F19;
+            color: #f3f4f6;
+            overflow-x: hidden;
+        }
+        .font-orbitron {
+            font-family: 'Orbitron', sans-serif;
+        }
+        .font-mono-code {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Custom futuristic glass effect */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+        .glass-button {
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-button:hover {
+            background: rgba(51, 65, 85, 0.8);
+            border-color: rgba(0, 242, 254, 0.4);
+            box-shadow: 0 0 15px rgba(0, 242, 254, 0.2);
+            transform: translateY(-1px);
+        }
+        .glass-button:active {
+            transform: translateY(1px);
+        }
+        /* Glowing background orb animations */
+        @keyframes floatOrb {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(30px, -40px) scale(1.1); }
+        }
+        .orb-1 {
+            animation: floatOrb 10s ease-in-out infinite;
+        }
+        .orb-2 {
+            animation: floatOrb 12s ease-in-out infinite reverse;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(11, 15, 25, 0.5);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 242, 254, 0.5);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col relative selection:bg-cyan-500 selection:text-black">
+
+    <!-- Background Ambient Glow Orbs -->
+    <div class="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div class="absolute -top-40 -left-40 w-96 h-96 bg-cyan-500/10 rounded-full blur-[120px] orb-1"></div>
+        <div class="absolute top-1/2 -right-40 w-96 h-96 bg-blue-600/10 rounded-full blur-[140px] orb-2"></div>
+        <div class="absolute -bottom-40 left-1/3 w-96 h-96 bg-purple-600/10 rounded-full blur-[140px] orb-1"></div>
+    </div>
+
+    <!-- Header Navigation -->
+    <header class="relative z-10 w-full border-b border-white/10 glass-panel sticky top-0">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-400 to-blue-600 flex items-center justify-center shadow-neon">
+                    <i class="fa-solid fa-atom text-black text-xl font-bold"></i>
+                </div>
+                <div>
+                    <h1 class="font-orbitron font-black text-xl tracking-wider bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
+                        CALCULATOR
+                    </h1>
+                    <p class="text-xs text-cyan-400/70 tracking-widest uppercase font-mono">Compute & Converter Suite</p>
+                </div>
+            </div>
+
+            <!-- Mode Switcher Tabs -->
+            <div class="flex bg-slate-900/80 p-1.5 rounded-2xl border border-white/10 shadow-inner">
+                <button id="tabCalcBtn" onclick="switchTab('calc')" class="flex items-center space-x-2 px-5 py-2.5 rounded-xl font-orbitron text-xs sm:text-sm font-semibold transition-all duration-300 bg-gradient-to-r from-cyan-500 to-blue-600 text-black shadow-neon">
+                    <i class="fa-solid fa-calculator"></i>
+                    <span>Calculator</span>
+                </button>
+                <button id="tabConvBtn" onclick="switchTab('conv')" class="flex items-center space-x-2 px-5 py-2.5 rounded-xl font-orbitron text-xs sm:text-sm font-semibold transition-all duration-300 text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-shuffle"></i>
+                    <span>Unit Converter</span>
+                </button>
+                <button onclick="toggleTermsModal(true)" class="flex items-center space-x-2 px-3 py-2.5 rounded-xl font-orbitron text-xs sm:text-sm font-semibold transition-all duration-300 text-amber-400/90 hover:text-amber-300 hover:bg-amber-500/10" title="Limitations & Terms of Use">
+                    <i class="fa-solid fa-shield-halved text-base"></i>
+                    <span class="hidden md:inline">Terms & Limits</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="relative z-10 flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col justify-center">
+
+        <!-- ==================== VIEW 1: QUANTUM CALCULATOR ==================== -->
+        <div id="calculatorView" class="w-full max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 transition-all duration-300">
+            
+            <!-- Calculator Main Panel (2 Columns on large screens) -->
+            <div class="lg:col-span-2 glass-panel rounded-3xl p-6 sm:p-8 flex flex-col shadow-2xl relative overflow-hidden border border-white/10">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 rounded-full blur-2xl pointer-events-none"></div>
+
+                <!-- Display Screen -->
+                <div class="bg-slate-950/80 rounded-2xl p-5 mb-6 border border-white/10 shadow-inner flex flex-col justify-between relative group">
+                    <div id="calcHistoryTrail" class="text-xs text-slate-400 font-mono-code h-6 overflow-x-auto whitespace-nowrap text-right mb-1"></div>
+                    <div id="calcExpression" class="text-sm sm:text-base text-cyan-400/80 font-mono-code min-h-[1.5rem] overflow-x-auto whitespace-nowrap text-right"></div>
+                    <div id="calcDisplay" class="text-3xl sm:text-4xl font-orbitron font-bold text-white overflow-x-auto whitespace-nowrap text-right tracking-wider mt-1">0</div>
+                    
+                    <!-- Copy result quick button -->
+                    <button onclick="copyCalculatorResult()" class="absolute top-3 left-3 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800/80 hover:bg-slate-700 text-cyan-400 p-2 rounded-lg text-xs flex items-center space-x-1 border border-white/10" title="Copy Result">
+                        <i class="fa-regular fa-copy"></i>
+                    </button>
+                </div>
+
+                <!-- Keypad Grid -->
+                <div class="grid grid-cols-5 gap-2.5 sm:gap-3">
+                    <!-- Row 1: Scientific / Extra -->
+                    <button onclick="appendCalc('sin(')" class="glass-button text-cyan-300 py-3 rounded-xl font-orbitron text-xs sm:text-sm font-semibold">sin</button>
+                    <button onclick="appendCalc('cos(')" class="glass-button text-cyan-300 py-3 rounded-xl font-orbitron text-xs sm:text-sm font-semibold">cos</button>
+                    <button onclick="appendCalc('tan(')" class="glass-button text-cyan-300 py-3 rounded-xl font-orbitron text-xs sm:text-sm font-semibold">tan</button>
+                    <button onclick="clearCalculator()" class="glass-button text-rose-400 py-3 rounded-xl font-orbitron text-xs sm:text-sm font-bold border-rose-500/30 hover:border-rose-500">AC</button>
+                    <button onclick="backspaceCalc()" class="glass-button text-amber-400 py-3 rounded-xl font-orbitron text-xs sm:text-sm"><i class="fa-solid fa-delete-left"></i></button>
+
+                    <!-- Row 2: Scientific / Constants -->
+                    <button onclick="appendCalc('log(')" class="glass-button text-cyan-300 py-3 rounded-xl font-orbitron text-xs sm:text-sm font-semibold">log</button>
+                    <button onclick="appendCalc('ln(')" class="glass-button text-cyan-300 py-3 rounded-xl font-orbitron text-xs sm:text-sm font-semibold">ln</button>
+                    <button onclick="appendCalc('sqrt(')" class="glass-button text-cyan-300 py-3 rounded-xl font-orbitron text-xs sm:text-sm font-semibold">√</button>
+                    <button onclick="appendCalc('^')" class="glass-button text-cyan-300 py-3 rounded-xl font-orbitron text-xs sm:text-sm font-semibold">x^y</button>
+                    <button onclick="appendCalc('/')" class="glass-button text-electricViolet py-3 rounded-xl font-orbitron text-base font-bold bg-blue-500/10">÷</button>
+
+                    <!-- Row 3: Numbers 7, 8, 9 & Multiply -->
+                    <button onclick="appendCalc('7')" class="glass-button text-white py-3.5 rounded-xl font-orbitron text-base font-semibold">7</button>
+                    <button onclick="appendCalc('8')" class="glass-button text-white py-3.5 rounded-xl font-orbitron text-base font-semibold">8</button>
+                    <button onclick="appendCalc('9')" class="glass-button text-white py-3.5 rounded-xl font-orbitron text-base font-semibold">9</button>
+                    <button onclick="appendCalc('pi')" class="glass-button text-purple-300 py-3.5 rounded-xl font-orbitron text-sm font-semibold">π</button>
+                    <button onclick="appendCalc('*')" class="glass-button text-electricViolet py-3.5 rounded-xl font-orbitron text-base font-bold bg-blue-500/10">×</button>
+
+                    <!-- Row 4: Numbers 4, 5, 6 & Minus -->
+                    <button onclick="appendCalc('4')" class="glass-button text-white py-3.5 rounded-xl font-orbitron text-base font-semibold">4</button>
+                    <button onclick="appendCalc('5')" class="glass-button text-white py-3.5 rounded-xl font-orbitron text-base font-semibold">5</button>
+                    <button onclick="appendCalc('6')" class="glass-button text-white py-3.5 rounded-xl font-orbitron text-base font-semibold">6</button>
+                    <button onclick="appendCalc('e')" class="glass-button text-purple-300 py-3.5 rounded-xl font-orbitron text-sm font-semibold">e</button>
+                    <button onclick="appendCalc('-')" class="glass-button text-electricViolet py-3.5 rounded-xl font-orbitron text-base font-bold bg-blue-500/10">-</button>
+
+                    <!-- Row 5: Numbers 1, 2, 3 & Plus -->
+                    <button onclick="appendCalc('1')" class="glass-button text-white py-3.5 rounded-xl font-orbitron text-base font-semibold">1</button>
+                    <button onclick="appendCalc('2')" class="glass-button text-white py-3.5 rounded-xl font-orbitron text-base font-semibold">2</button>
+                    <button onclick="appendCalc('3')" class="glass-button text-white py-3.5 rounded-xl font-orbitron text-base font-semibold">3</button>
+                    <button onclick="appendCalc('!')" class="glass-button text-cyan-300 py-3.5 rounded-xl font-orbitron text-sm font-semibold">n!</button>
+                    <button onclick="appendCalc('+')" class="glass-button text-electricViolet py-3.5 rounded-xl font-orbitron text-base font-bold bg-blue-500/10">+</button>
+
+                    <!-- Row 6: Parentheses, 0, Decimal, Equals -->
+                    <button onclick="appendCalc('(')" class="glass-button text-slate-300 py-3.5 rounded-xl font-orbitron text-base font-semibold">(</button>
+                    <button onclick="appendCalc(')')" class="glass-button text-slate-300 py-3.5 rounded-xl font-orbitron text-base font-semibold">)</button>
+                    <button onclick="appendCalc('0')" class="glass-button text-white py-3.5 rounded-xl font-orbitron text-base font-semibold">0</button>
+                    <button onclick="appendCalc('.')" class="glass-button text-white py-3.5 rounded-xl font-orbitron text-base font-semibold">.</button>
+                    <button onclick="calculateResult()" class="col-span-1 bg-gradient-to-r from-cyan-400 to-blue-600 hover:from-cyan-300 hover:to-blue-500 text-black py-3.5 rounded-xl font-orbitron font-black text-lg shadow-neon transition-all duration-200 flex items-center justify-center">=</button>
+                </div>
+            </div>
+
+            <!-- Calculator History Panel (1 Column) -->
+            <div class="glass-panel rounded-3xl p-6 flex flex-col shadow-2xl border border-white/10 h-[500px] lg:h-auto">
+                <div class="flex items-center justify-between pb-4 border-b border-white/10 mb-4">
+                    <h3 class="font-orbitron font-bold text-sm tracking-wide text-cyan-300 flex items-center space-x-2">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                        <span>Quantum Logs</span>
+                    </h3>
+                    <button onclick="clearHistory()" class="text-xs text-slate-400 hover:text-rose-400 transition-colors" title="Clear History">
+                        <i class="fa-solid fa-trash-can"></i> Clear
+                    </button>
+                </div>
+
+                <div id="historyList" class="flex-1 overflow-y-auto space-y-3 pr-1">
+                    <div class="text-center text-slate-500 text-xs py-12">
+                        <i class="fa-solid fa-calculator text-2xl mb-2 opacity-30"></i>
+                        <p>No calculation history yet.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== VIEW 2: DIMENSION MATRIX (UNIT CONVERTER) ==================== -->
+        <div id="converterView" class="w-full max-w-3xl mx-auto hidden transition-all duration-300">
+            <div class="glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl border border-white/10 relative overflow-hidden">
+                <div class="absolute -bottom-10 -right-10 w-40 h-40 bg-purple-500/5 rounded-full blur-3xl pointer-events-none"></div>
+
+                <!-- Category Selector Pills -->
+                <div class="flex items-center space-x-2 overflow-x-auto pb-4 mb-6 no-scrollbar">
+                    <button onclick="setConverterCategory('length')" id="cat_length" class="conv-cat-btn px-4 py-2 rounded-xl font-orbitron text-xs font-semibold whitespace-nowrap transition-all bg-gradient-to-r from-cyan-500 to-blue-600 text-black shadow-neon">
+                        <i class="fa-solid fa-ruler mr-1.5"></i> Length
+                    </button>
+                    <button onclick="setConverterCategory('mass')" id="cat_mass" class="conv-cat-btn px-4 py-2 rounded-xl font-orbitron text-xs font-semibold whitespace-nowrap transition-all glass-button text-slate-300 hover:text-white">
+                        <i class="fa-solid fa-weight-hanging mr-1.5"></i> Mass
+                    </button>
+                    <button onclick="setConverterCategory('temperature')" id="cat_temperature" class="conv-cat-btn px-4 py-2 rounded-xl font-orbitron text-xs font-semibold whitespace-nowrap transition-all glass-button text-slate-300 hover:text-white">
+                        <i class="fa-solid fa-temperature-high mr-1.5"></i> Temperature
+                    </button>
+                    <button onclick="setConverterCategory('volume')" id="cat_volume" class="conv-cat-btn px-4 py-2 rounded-xl font-orbitron text-xs font-semibold whitespace-nowrap transition-all glass-button text-slate-300 hover:text-white">
+                        <i class="fa-solid fa-cube mr-1.5"></i> Volume
+                    </button>
+                    <button onclick="setConverterCategory('speed')" id="cat_speed" class="conv-cat-btn px-4 py-2 rounded-xl font-orbitron text-xs font-semibold whitespace-nowrap transition-all glass-button text-slate-300 hover:text-white">
+                        <i class="fa-solid fa-gauge-high mr-1.5"></i> Speed
+                    </button>
+                    <button onclick="setConverterCategory('time')" id="cat_time" class="conv-cat-btn px-4 py-2 rounded-xl font-orbitron text-xs font-semibold whitespace-nowrap transition-all glass-button text-slate-300 hover:text-white">
+                        <i class="fa-solid fa-clock mr-1.5"></i> Time
+                    </button>
+                    <button onclick="setConverterCategory('data')" id="cat_data" class="conv-cat-btn px-4 py-2 rounded-xl font-orbitron text-xs font-semibold whitespace-nowrap transition-all glass-button text-slate-300 hover:text-white">
+                        <i class="fa-solid fa-database mr-1.5"></i> Data
+                    </button>
+                    <button onclick="setConverterCategory('area')" id="cat_area" class="conv-cat-btn px-4 py-2 rounded-xl font-orbitron text-xs font-semibold whitespace-nowrap transition-all glass-button text-slate-300 hover:text-white">
+                        <i class="fa-solid fa-draw-polygon mr-1.5"></i> Area
+                    </button>
+                    <button onclick="setConverterCategory('pressure')" id="cat_pressure" class="conv-cat-btn px-4 py-2 rounded-xl font-orbitron text-xs font-semibold whitespace-nowrap transition-all glass-button text-slate-300 hover:text-white">
+                        <i class="fa-solid fa-compress mr-1.5"></i> Pressure
+                    </button>
+                </div>
+
+                <!-- Converter Interactive Box -->
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                    
+                    <!-- From Section -->
+                    <div class="md:col-span-5 bg-slate-950/70 p-5 rounded-2xl border border-white/10 flex flex-col space-y-3">
+                        <label class="text-xs font-orbitron text-cyan-400 uppercase tracking-wider">Source Unit</label>
+                        <input type="number" id="fromValue" value="1" oninput="convertUnits()" class="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-white font-orbitron text-xl focus:outline-none focus:border-cyan-400 transition-colors">
+                        <select id="fromUnit" onchange="convertUnits()" class="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-2.5 text-slate-200 font-medium text-sm focus:outline-none focus:border-cyan-400 transition-colors">
+                            <!-- Populated via JS -->
+                        </select>
+                    </div>
+
+                    <!-- Swap Button -->
+                    <div class="md:col-span-2 flex justify-center my-2 md:my-0">
+                        <button onclick="swapUnits()" class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 hover:scale-105 active:scale-95 text-black flex items-center justify-center shadow-neon transition-all" title="Swap Units">
+                            <i class="fa-solid fa-right-left text-lg font-bold"></i>
+                        </button>
+                    </div>
+
+                    <!-- To Section -->
+                    <div class="md:col-span-5 bg-slate-950/70 p-5 rounded-2xl border border-white/10 flex flex-col space-y-3 relative group">
+                        <label class="text-xs font-orbitron text-purple-400 uppercase tracking-wider">Target Unit</label>
+                        <input type="text" id="toValue" readonly class="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-cyan-300 font-orbitron text-xl focus:outline-none cursor-default">
+                        <select id="toUnit" onchange="convertUnits()" class="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-2.5 text-slate-200 font-medium text-sm focus:outline-none focus:border-purple-400 transition-colors">
+                            <!-- Populated via JS -->
+                        </select>
+
+                        <!-- Copy converted result -->
+                        <button onclick="copyConverterResult()" class="absolute top-4 right-4 text-slate-400 hover:text-cyan-400 text-sm transition-colors" title="Copy Converted Value">
+                            <i class="fa-regular fa-copy"></i>
+                        </button>
+                    </div>
+
+                </div>
+
+                <!-- Conversion Formula / Info note -->
+                <div class="mt-6 p-4 rounded-xl bg-cyan-950/20 border border-cyan-500/20 flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <i class="fa-solid fa-circle-info text-cyan-400 text-lg"></i>
+                        <div id="conversionInfoText" class="text-xs text-slate-300 font-mono-code">
+                            Real-time quantum scaling conversion active with high-precision factor ratios.
+                        </div>
+                    </div>
+                    <button onclick="toggleTermsModal(true)" class="text-xs text-amber-400 hover:underline whitespace-nowrap ml-2 font-orbitron">
+                        Terms & Limitations
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer Disclaimer Link -->
+    <footer class="relative z-10 w-full py-4 text-center text-xs text-slate-500 border-t border-white/5 bg-slate-950/40 backdrop-blur-sm">
+        <p>Free for Public Use • For Entertainment & Informational Purposes Only • <button onclick="toggleTermsModal(true)" class="text-cyan-400 hover:underline font-semibold">View Limitations & Terms of Use</button></p>
+    </footer>
+
+    <!-- LIMITATIONS & TERMS OF USE MODAL -->
+    <div id="termsModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md hidden transition-opacity duration-300 opacity-0">
+        <div class="glass-panel w-full max-w-2xl max-h-[85vh] rounded-3xl p-6 sm:p-8 flex flex-col shadow-2xl border border-white/10 relative overflow-hidden">
+            
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between pb-4 border-b border-white/10">
+                <div class="flex items-center space-x-3">
+                    <div class="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-orbitron font-bold text-lg text-white">Limitations & Terms of Use</h2>
+                        <p class="text-xs text-slate-400 font-mono">Important Legal Disclaimer & System Constraints</p>
+                    </div>
+                </div>
+                <button onclick="toggleTermsModal(false)" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Modal Scrollable Content -->
+            <div class="flex-1 overflow-y-auto my-4 space-y-6 text-slate-300 text-xs sm:text-sm leading-relaxed pr-2">
+                
+                <!-- Notice Banner -->
+                <div class="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs font-mono">
+                    <strong>Notice:</strong> By using this application, you acknowledge that it is provided free for public use strictly for entertainment and educational purposes, without any warranties regarding computational accuracy.
+                </div>
+
+                <!-- Section 1: Terms of Use & Disclaimers -->
+                <div>
+                    <h3 class="font-orbitron font-bold text-cyan-400 mb-2 flex items-center space-x-2 text-base">
+                        <i class="fa-solid fa-gavel"></i>
+                        <span>1. Terms of Use & Legal Disclaimers</span>
+                    </h3>
+                    <ul class="list-disc list-inside space-y-2 text-slate-300 pl-1">
+                        <li><strong>Free for Public Use:</strong> This application is offered 100% free of charge for personal, recreational, and general educational use by the general public.</li>
+                        <li><strong>Entertainment & Informational Purposes Only:</strong> All calculation and unit conversion features are intended strictly for casual entertainment, conceptual exploration, and general informational purposes.</li>
+                        <li><strong>Accuracy Non-Guarantee:</strong> While calculations utilize standard mathematical models (`mathjs`) and standard metric factors, accuracy cannot be guaranteed due to potential formula limitations, edge cases, or client environment variations.</li>
+                        <li><strong>No Creator Responsibility / Limitation of Liability:</strong> The person posting, hosting, or developing this tool accepts <strong>NO responsibility or liability</strong> for any calculation errors, missing data, or loss or damage arising from reliance on these results. Do not rely on this tool for mission-critical calculations, engineering, navigation, medical dosage, academic examinations, or financial transactions.</li>
+                    </ul>
+                </div>
+
+                <!-- Section 2: Technical Limitations -->
+                <div>
+                    <h3 class="font-orbitron font-bold text-cyan-400 mb-2 flex items-center space-x-2 text-base">
+                        <i class="fa-solid fa-microchip"></i>
+                        <span>2. Technical & Mathematical Limitations</span>
+                    </h3>
+                    <ul class="list-disc list-inside space-y-2 text-slate-300 pl-1">
+                        <li><strong>Floating-Point Precision:</strong> Computations rely on IEEE 754 floating-point standard representations. Minor rounding deviations or decimal artifacts may occur in long operations or extreme fractions.</li>
+                        <li><strong>Domain & Function Bounds:</strong> Trigonometric operations (`sin`, `cos`, `tan`) process standard radian/degree conversions. Mathematical undefined conditions (e.g., division by zero, square root of negative numbers) will return calculation errors.</li>
+                        <li><strong>Overflow & Factorials:</strong> Exponentiations and factorials exceeding JavaScript runtime number representation thresholds (e.g., `1000!`) will evaluate to `Infinity` or throw evaluation exceptions.</li>
+                        <li><strong>Unit Conversion Scope:</strong> Unit conversions are performed using standard fixed mathematical conversion factors. Real-world variable factors (such as dynamic atmospheric pressure shifts, geographic variations, or non-linear factors) are not modeled.</li>
+                    </ul>
+                </div>
+
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="pt-4 border-t border-white/10 flex justify-end">
+                <button onclick="toggleTermsModal(false)" class="px-6 py-2.5 rounded-xl font-orbitron text-xs sm:text-sm font-bold bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black shadow-neon transition-all">
+                    I Understand & Agree
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Toast Notification Message Box -->
+    <div id="toastNotification" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 glass-panel bg-slate-900/90 border border-cyan-500/40 px-5 py-3 rounded-2xl shadow-neon flex items-center space-x-3">
+        <i class="fa-solid fa-circle-check text-cyan-400 text-lg"></i>
+        <span id="toastMessage" class="text-sm font-semibold text-white">Copied to quantum clipboard!</span>
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // --- Navigation Tabs ---
+        function switchTab(tab) {
+            const calcBtn = document.getElementById('tabCalcBtn');
+            const convBtn = document.getElementById('tabConvBtn');
+            const calcView = document.getElementById('calculatorView');
+            const convView = document.getElementById('converterView');
+
+            if (tab === 'calc') {
+                calcBtn.className = "flex items-center space-x-2 px-5 py-2.5 rounded-xl font-orbitron text-xs sm:text-sm font-semibold transition-all duration-300 bg-gradient-to-r from-cyan-500 to-blue-600 text-black shadow-neon";
+                convBtn.className = "flex items-center space-x-2 px-5 py-2.5 rounded-xl font-orbitron text-xs sm:text-sm font-semibold transition-all duration-300 text-slate-400 hover:text-white";
+                calcView.classList.remove('hidden');
+                convView.classList.add('hidden');
+            } else {
+                convBtn.className = "flex items-center space-x-2 px-5 py-2.5 rounded-xl font-orbitron text-xs sm:text-sm font-semibold transition-all duration-300 bg-gradient-to-r from-cyan-500 to-blue-600 text-black shadow-neon";
+                calcBtn.className = "flex items-center space-x-2 px-5 py-2.5 rounded-xl font-orbitron text-xs sm:text-sm font-semibold transition-all duration-300 text-slate-400 hover:text-white";
+                convView.classList.remove('hidden');
+                calcView.classList.add('hidden');
+            }
+        }
+
+        // --- Toast Notification ---
+        function showToast(message) {
+            const toast = document.getElementById('toastNotification');
+            const msg = document.getElementById('toastMessage');
+            msg.textContent = message;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 2500);
+        }
+
+        // --- CALCULATOR ENGINE ---
+        let currentExpression = '';
+        let lastResult = '';
+        let calcHistory = [];
+
+        function appendCalc(val) {
+            currentExpression += val;
+            updateCalcDisplay();
+        }
+
+        function clearCalculator() {
+            currentExpression = '';
+            document.getElementById('calcDisplay').textContent = '0';
+            document.getElementById('calcExpression').textContent = '';
+            document.getElementById('calcHistoryTrail').textContent = '';
+        }
+
+        function backspaceCalc() {
+            currentExpression = currentExpression.slice(0, -1);
+            updateCalcDisplay();
+        }
+
+        function updateCalcDisplay() {
+            document.getElementById('calcExpression').textContent = currentExpression;
+        }
+
+        function calculateResult() {
+            if (!currentExpression.trim()) return;
+            try {
+                // Parse and evaluate using math.js for high accuracy
+                let evaluated = math.evaluate(currentExpression);
+                
+                // Format floating numbers cleanly
+                if (typeof evaluated === 'number') {
+                    evaluated = Number(math.format(evaluated, { precision: 12 }));
+                }
+
+                document.getElementById('calcHistoryTrail').textContent = currentExpression + ' =';
+                document.getElementById('calcDisplay').textContent = evaluated;
+
+                // Add to history
+                addHistoryItem(currentExpression, evaluated);
+
+                lastResult = evaluated.toString();
+                currentExpression = evaluated.toString();
+            } catch (error) {
+                document.getElementById('calcDisplay').textContent = 'Quantum Error';
+                showToast('Invalid math expression syntax');
+            }
+        }
+
+        function addHistoryItem(expr, res) {
+            calcHistory.unshift({ expr, res });
+            if (calcHistory.length > 25) calcHistory.pop();
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const list = document.getElementById('historyList');
+            if (calcHistory.length === 0) {
+                list.innerHTML = `
+                    <div class="text-center text-slate-500 text-xs py-12">
+                        <i class="fa-solid fa-calculator text-2xl mb-2 opacity-30"></i>
+                        <p>No calculation history yet.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            list.innerHTML = calcHistory.map((item, index) => `
+                <div onclick="recallHistory('${item.res}')" class="bg-slate-900/60 hover:bg-slate-800/80 border border-white/5 p-3 rounded-xl cursor-pointer transition-all group">
+                    <div class="text-xs text-slate-400 font-orbitron">${item.expr}</div>
+                    <div class="text-sm font-bold text-cyan-300 font-mono-code mt-0.5">= ${item.res}</div>
+                </div>
+            `).join('');
+        }
+
+        function recallHistory(val) {
+            currentExpression += val;
+            updateCalcDisplay();
+            showToast('Recalled value to expression');
+        }
+
+        function clearHistory() {
+            calcHistory = [];
+            renderHistory();
+            showToast('Quantum logs cleared');
+        }
+
+        function copyCalculatorResult() {
+            const val = document.getElementById('calcDisplay').textContent;
+            const textarea = document.createElement('textarea');
+            textarea.value = val;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            showToast('Result copied to clipboard!');
+        }
+
+        // Keyboard support for calculator
+        document.addEventListener('keydown', (e) => {
+            if (document.getElementById('calculatorView').classList.contains('hidden')) return;
+            
+            const key = e.key;
+            if ((key >= '0' && key <= '9') || key === '.' || key === '+' || key === '-' || key === '*' || key === '/' || key === '(' || key === ')' || key === '^') {
+                appendCalc(key);
+            } else if (key === 'Enter') {
+                calculateResult();
+            } else if (key === 'Backspace') {
+                backspaceCalc();
+            } else if (key === 'Escape') {
+                clearCalculator();
+            }
+        });
+
+
+        // --- DIMENSION MATRIX (UNIT CONVERTER) ---
+        const unitData = {
+            length: {
+                name: 'Length',
+                base: 'meter',
+                units: {
+                    meter: { name: 'Meters (m)', ratio: 1 },
+                    kilometer: { name: 'Kilometers (km)', ratio: 1000 },
+                    centimeter: { name: 'Centimeters (cm)', ratio: 0.01 },
+                    millimeter: { name: 'Millimeters (mm)', ratio: 0.001 },
+                    mile: { name: 'Miles (mi)', ratio: 1609.344 },
+                    yard: { name: 'Yards (yd)', ratio: 0.9144 },
+                    foot: { name: 'Feet (ft)', ratio: 0.3048 },
+                    inch: { name: 'Inches (in)', ratio: 0.0254 },
+                    lightyear: { name: 'Light Years (ly)', ratio: 9.461e15 }
+                }
+            },
+            mass: {
+                name: 'Mass',
+                base: 'gram',
+                units: {
+                    gram: { name: 'Grams (g)', ratio: 1 },
+                    kilogram: { name: 'Kilograms (kg)', ratio: 1000 },
+                    milligram: { name: 'Milligrams (mg)', ratio: 0.001 },
+                    metricTon: { name: 'Metric Tons (t)', ratio: 1000000 },
+                    pound: { name: 'Pounds (lb)', ratio: 453.59237 },
+                    ounce: { name: 'Ounces (oz)', ratio: 28.349523125 }
+                }
+            },
+            temperature: {
+                name: 'Temperature',
+                units: {
+                    celsius: { name: 'Celsius (°C)' },
+                    fahrenheit: { name: 'Fahrenheit (°F)' },
+                    kelvin: { name: 'Kelvin (K)' }
+                }
+            },
+            volume: {
+                name: 'Volume',
+                base: 'liter',
+                units: {
+                    liter: { name: 'Liters (L)', ratio: 1 },
+                    milliliter: { name: 'Milliliters (mL)', ratio: 0.001 },
+                    cubicMeter: { name: 'Cubic Meters (m³)', ratio: 1000 },
+                    gallonUS: { name: 'Gallons (US)', ratio: 3.78541 },
+                    quartUS: { name: 'Quarts (US)', ratio: 0.946353 },
+                    cup: { name: 'Cups', ratio: 0.24 }
+                }
+            },
+            speed: {
+                name: 'Speed',
+                base: 'mps',
+                units: {
+                    mps: { name: 'Meters per second (m/s)', ratio: 1 },
+                    kph: { name: 'Kilometers per hour (km/h)', ratio: 0.277778 },
+                    mph: { name: 'Miles per hour (mph)', ratio: 0.44704 },
+                    knot: { name: 'Knots (kn)', ratio: 0.514444 },
+                    c: { name: 'Speed of Light (c)', ratio: 299792458 }
+                }
+            },
+            time: {
+                name: 'Time',
+                base: 'second',
+                units: {
+                    second: { name: 'Seconds (s)', ratio: 1 },
+                    millisecond: { name: 'Milliseconds (ms)', ratio: 0.001 },
+                    minute: { name: 'Minutes (min)', ratio: 60 },
+                    hour: { name: 'Hours (hr)', ratio: 3600 },
+                    day: { name: 'Days (d)', ratio: 86400 },
+                    week: { name: 'Weeks (wk)', ratio: 604800 },
+                    year: { name: 'Years (yr)', ratio: 31536000 }
+                }
+            },
+            data: {
+                name: 'Data Storage',
+                base: 'byte',
+                units: {
+                    byte: { name: 'Bytes (B)', ratio: 1 },
+                    kilobyte: { name: 'Kilobytes (KB)', ratio: 1024 },
+                    megabyte: { name: 'Megabytes (MB)', ratio: 1048576 },
+                    gigabyte: { name: 'Gigabytes (GB)', ratio: 1073741824 },
+                    terabyte: { name: 'Terabytes (TB)', ratio: 1099511627776 },
+                    petabyte: { name: 'Petabytes (PB)', ratio: 1.1258999e15 }
+                }
+            },
+            area: {
+                name: 'Area',
+                base: 'sqMeter',
+                units: {
+                    sqMeter: { name: 'Square Meters (m²)', ratio: 1 },
+                    sqKilometer: { name: 'Square Kilometers (km²)', ratio: 1000000 },
+                    sqMile: { name: 'Square Miles (mi²)', ratio: 2589988.11 },
+                    acre: { name: 'Acres', ratio: 4046.85642 },
+                    hectare: { name: 'Hectares (ha)', ratio: 10000 },
+                    sqFoot: { name: 'Square Feet (ft²)', ratio: 0.092903 }
+                }
+            },
+            pressure: {
+                name: 'Pressure',
+                base: 'pascal',
+                units: {
+                    pascal: { name: 'Pascals (Pa)', ratio: 1 },
+                    kilopascal: { name: 'Kilopascals (kPa)', ratio: 1000 },
+                    bar: { name: 'Bars (bar)', ratio: 100000 },
+                    psi: { name: 'PSI', ratio: 6894.757 },
+                    atmosphere: { name: 'Atmospheres (atm)', ratio: 101325 }
+                }
+            }
+        };
+
+        let currentCategory = 'length';
+
+        function setConverterCategory(cat) {
+            currentCategory = cat;
+            
+            // Update button styles
+            document.querySelectorAll('.conv-cat-btn').forEach(btn => {
+                btn.className = "conv-cat-btn px-4 py-2 rounded-xl font-orbitron text-xs font-semibold whitespace-nowrap transition-all glass-button text-slate-300 hover:text-white";
+            });
+            const activeBtn = document.getElementById('cat_' + cat);
+            activeBtn.className = "conv-cat-btn px-4 py-2 rounded-xl font-orbitron text-xs font-semibold whitespace-nowrap transition-all bg-gradient-to-r from-cyan-500 to-blue-600 text-black shadow-neon";
+
+            populateUnits();
+        }
+
+        function populateUnits() {
+            const catObj = unitData[currentCategory];
+            const fromSelect = document.getElementById('fromUnit');
+            const toSelect = document.getElementById('toUnit');
+            
+            let optionsHTML = '';
+            for (const [key, val] of Object.entries(catObj.units)) {
+                optionsHTML += `<option value="${key}">${val.name}</option>`;
+            }
+
+            fromSelect.innerHTML = optionsHTML;
+            toSelect.innerHTML = optionsHTML;
+
+            // Set default different 'to' unit if possible
+            if (toSelect.options.length > 1) {
+                toSelect.selectedIndex = 1;
+            }
+
+            convertUnits();
+        }
+
+        function convertUnits() {
+            const val = parseFloat(document.getElementById('fromValue').value);
+            const fromU = document.getElementById('fromUnit').value;
+            const toU = document.getElementById('toUnit').value;
+            const toField = document.getElementById('toValue');
+            const infoText = document.getElementById('conversionInfoText');
+
+            if (isNaN(val)) {
+                toField.value = '';
+                return;
+            }
+
+            let result = 0;
+
+            if (currentCategory === 'temperature') {
+                // Special handling for temperature
+                let celsius = val;
+                if (fromU === 'fahrenheit') celsius = (val - 32) * 5/9;
+                if (fromU === 'kelvin') celsius = val - 273.15;
+
+                if (toU === 'celsius') result = celsius;
+                else if (toU === 'fahrenheit') result = (celsius * 9/5) + 32;
+                else if (toU === 'kelvin') result = celsius + 273.15;
+
+                infoText.textContent = `Converting ${unitData.temperature.units[fromU].name} to ${unitData.temperature.units[toU].name} via absolute thermal scale.`;
+            } else {
+                const catObj = unitData[currentCategory];
+                const baseVal = val * catObj.units[fromU].ratio;
+                result = baseVal / catObj.units[toU].ratio;
+
+                infoText.textContent = `1 ${catObj.units[fromU].name} = ${(catObj.units[fromU].ratio / catObj.units[toU].ratio).toPrecision(6)} ${catObj.units[toU].name}`;
+            }
+
+            // Format result cleanly
+            if (Math.abs(result) < 1e-6 || Math.abs(result) > 1e9) {
+                toField.value = result.toExponential(6);
+            } else {
+                toField.value = Number(result.toFixed(8));
+            }
+        }
+
+        function swapUnits() {
+            const fromU = document.getElementById('fromUnit');
+            const toU = document.getElementById('toUnit');
+            const temp = fromU.value;
+            fromU.value = toU.value;
+            toU.value = temp;
+            convertUnits();
+        }
+
+        function copyConverterResult() {
+            const val = document.getElementById('toValue').value;
+            const textarea = document.createElement('textarea');
+            textarea.value = val;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            showToast('Converted value copied to clipboard!');
+        }
+
+        // Initialize converter on load
+        window.onload = function() {
+            setConverterCategory('length');
+        };
+
+        // Modal Handler
+        function toggleTermsModal(show) {
+            const modal = document.getElementById('termsModal');
+            if (show) {
+                modal.classList.remove('hidden');
+                setTimeout(() => {
+                    modal.classList.remove('opacity-0');
+                }, 10);
+            } else {
+                modal.classList.add('opacity-0');
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                }, 300);
+            }
+        }
+    </script>
+</body>
+</html>
